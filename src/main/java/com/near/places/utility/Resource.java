@@ -3,12 +3,22 @@ package com.near.places.utility;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import java.io.FileReader;
+import java.io.Serializable;
+import java.util.Properties;
 
-public class Resource {
-  private static Dataset dataFrame;
+public class Resource implements Serializable {
+  private static Dataset<Row> dataFrame;
   private static SparkSession spark;
+  public Properties properties=null;
 
   public Resource() {
+ try{
+     properties=new Properties();
+     properties.load(new FileReader("src/main/resources/application.properties"));
+    }catch(Exception e){
+      System.out.println(e.getMessage());
+    }
   }
 
   public  SparkSession getSpark() {
@@ -19,22 +29,22 @@ public class Resource {
     Resource.spark = spark;
   }
 
-  public Dataset getDataFrame() {
+  public Dataset<Row> getDataFrame() {
     return dataFrame;
   }
 
-  public void setDataFrame(Dataset dataFrame) {
+  public void setDataFrame(Dataset<Row> dataFrame) {
     Resource.dataFrame = dataFrame;
   }
 
   public void readParquetFile(){
     SparkSession spark = SparkSession
         .builder()
-        .master("local[*]")
+        .master(properties.getProperty("HOST"))
         .appName("Near places")
         .getOrCreate();
 
-    Dataset<Row> df = spark.read().parquet("/Users/ajaymaurya/Downloads/spark/places.parquet");
+    Dataset<Row> df = spark.read().parquet(properties.getProperty("FILEPATH"));
     this.setDataFrame(df);
     this.setSpark(spark);
   }
