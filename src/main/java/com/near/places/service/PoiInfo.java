@@ -1,5 +1,7 @@
 package com.near.places.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.near.places.utility.Resource;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -8,63 +10,57 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import java.io.IOException;
-import java.util.Iterator;
+import java.io.*;
 
-public class PoiInfo {
+public class PoiInfo implements Serializable {
+  // Resource creates SparkSession
   Resource resource=new Resource();
-  public void nearestPoiDetail() throws IOException {
-    Dataset dataFrame=resource.getDataFrame();
+  public void nearestPoiDetail() {
+    Dataset<Row> dataFrame=resource.getDataFrame();
+    Dataset<Row> locationDataRdd = dataFrame.select("lat","lng");
 
-    Dataset<Row> locationData = dataFrame.select("lat","lng");
-    for (Iterator<Row> rowData = locationData.toLocalIterator(); rowData.hasNext(); ) {
-      String coordinate = (rowData.next()).toString();
+    locationDataRdd.foreachPartition(iterator -> {
+      while (iterator.hasNext()) {
+        Row row = iterator.next();
 
-      //Taking latitude and longitude
-      String[] lat_lng_coordinate = get_lat_lng(coordinate);
+        // Fetch nearest poiId for given latitude and longitude
+        String poiId=getPoiId(row.getDouble(0), row.getDouble(1));
 
-      //Taking poiId
-      String poiId=getPoiId(lat_lng_coordinate);
-
-      //Get data for particular poiId
-      getDataFromPoiId(poiId);
-    }
-    resource.getSpark().stop();
+        // fetch the details for nearest poiId
+        getDataFromPoiId(poiId);
+      }
+    });
   }
 
-  private static void getDataFromPoiId(String poiId) throws IOException {
+  public String getPoiId(double latitude,double longitude) throws IOException {
+    //Sending GET request to fetch PoiId
     HttpClient client = new DefaultHttpClient();
-    HttpGet request = new HttpGet("http://places.zprk.io/v2/places/IND?key=nearplacestestkey&near_poi_id="+poiId);
+    HttpGet request = new HttpGet(String.format("http://places.zprk.io/v1/proxim/%f/%f/1000?withdist=true&sort=ASC",latitude,longitude));
     HttpResponse response = client.execute(request);
-    //Taking response
-    String responseData = EntityUtils.toString(response.getEntity());
 
-    System.out.println(responseData);
-
+    //get jsonNode out of http response
+    JsonNode jsonNode=stringToJson(response);
+    String[] poiId = jsonNode.get("places").get(0).get(0).asText().split("\\|");
+    return poiId[0];
   }
 
-  public static String getPoiId(String[] locationCoordinate) throws IOException {
-    String poiId;
-    //Sending GET request to fetch POIID
+  public void getDataFromPoiId(String poiId) throws IOException {
     HttpClient client = new DefaultHttpClient();
-    HttpGet request = new HttpGet("http://places.zprk.io/v1/proxim/"+locationCoordinate[0]+"/"+locationCoordinate[1]+"/1000?withdist=true&sort=ASC");
+    HttpGet request = new HttpGet(String.format("http://places.zprk.io/v2/places/IND?key=nearplacestestkey&near_poi_id=%s", poiId));
     HttpResponse response = client.execute(request);
-    //Taking response
-    String responseData = EntityUtils.toString(response.getEntity());
 
-    if(responseData.length()>30){
-      poiId=responseData.substring(14,26);
-      return poiId;
-    }
-    return null;
+    //get jsonNode out of http response
+    JsonNode jsonNode = stringToJson(response);
+    String brand = jsonNode.get("payload").get(0).get("name").asText();
+    String category1 = jsonNode.get("payload").get(0).get("cat1").asText();
+    String category2 = jsonNode.get("payload").get(0).get("cat2").asText();
+    System.out.printf("brand=%s category1=%-25s category2=%-25s%n", brand, category1, category2);
   }
 
-  public static String[] get_lat_lng(String coordinate) {
-    String[] coordinateValue = new String[2];
-    String[] rawCoordinate = coordinate.split(",");
-    coordinateValue[0]=rawCoordinate[0].replace("[", "");
-    coordinateValue[1]=rawCoordinate[1].replace("]", "");
-
-    return coordinateValue;
+  //To convert the http response to json object
+  public JsonNode stringToJson(HttpResponse response) throws IOException {
+    String responseData = EntityUtils.toString(response.getEntity());
+    ObjectMapper objectMapper = new ObjectMapper();
+    return objectMapper.readTree(responseData);
   }
 }
