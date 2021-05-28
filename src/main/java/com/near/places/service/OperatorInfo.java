@@ -26,7 +26,6 @@ public class OperatorInfo {
         .mode("overwrite")
         .format("csv")
         .save(resource.properties.getProperty("OPERATORFILEPATH"));
-
     System.out.println("Data Saved successfully");
   }
 }
