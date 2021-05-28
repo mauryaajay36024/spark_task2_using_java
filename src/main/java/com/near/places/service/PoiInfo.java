@@ -22,7 +22,6 @@ import java.util.List;
 
 
 public class PoiInfo implements Serializable {
-  // Resource creates SparkSession
   Resource resource=new Resource();
   public void nearestPoiDetail() {
     Dataset<Row> dataFrame=resource.getDataFrame();
@@ -71,7 +70,7 @@ public class PoiInfo implements Serializable {
     list.add(category1);
     list.add(category2);
 
-    //Converting dataframe for HTTP response
+    //Converting into dataframe for HTTP response
     JavaSparkContext sparkContext = new JavaSparkContext();
     JavaRDD<Row> rowRDD = sparkContext.parallelize(list).map((String row) -> RowFactory.create(row));
     StructType schema = DataTypes.createStructType(
