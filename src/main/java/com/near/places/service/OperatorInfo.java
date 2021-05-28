@@ -12,7 +12,7 @@ public class OperatorInfo {
     Dataset<Row> dataFrame = resource.getDataFrame();
 
     long noOfOperators=dataFrame.select("devCarrier").distinct().count();
-    System.out.printf("No of Operators:: %o%n",noOfOperators);
+    System.out.printf("No of Operators:: %o",noOfOperators);
 
     // Register the DataFrame as a SQL temporary view
     dataFrame.createOrReplaceTempView("placesData");
