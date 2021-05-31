@@ -81,7 +81,7 @@ public class PoiInfo implements Serializable {
       jsonNode = convertStringToJson(response);
     }
 
-    if(jsonNode.has("payload") && jsonNode.get("payload").get(0).has("name")
+    if(jsonNode !=null && jsonNode.has("payload") && jsonNode.get("payload").get(0).has("name")
     && jsonNode.get("payload").get(0).has("cat1") && jsonNode.get("payload").get(0).has("cat2")) {
       String brand = jsonNode.get("payload").get(0).get("name").asText();
       String category1 = jsonNode.get("payload").get(0).get("cat1").asText();
