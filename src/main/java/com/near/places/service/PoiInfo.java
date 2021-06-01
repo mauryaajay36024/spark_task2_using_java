@@ -24,7 +24,7 @@ public class PoiInfo implements Serializable {
     Dataset<Row> locationDataRdd = dataFrame.select(StringConst.LAT,StringConst.LON);
 
     // Fetch nearest poiId for given latitude and longitude
-    JavaRDD<Row> locationData = locationDataRdd.limit(50).toJavaRDD();
+    JavaRDD<Row> locationData = locationDataRdd.toJavaRDD();
     locationData.foreachPartition(iterator -> {
       while (iterator.hasNext()) {
         Row row = iterator.next();
