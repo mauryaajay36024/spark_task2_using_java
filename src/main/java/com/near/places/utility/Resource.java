@@ -15,7 +15,7 @@ public class Resource implements Serializable {
   public Resource() {
  try{
      properties=new Properties();
-     properties.load(new FileReader("src/main/resources/application.properties"));
+     properties.load(new FileReader(StringConst.PROPERTIES_FILE_PATH));
     }catch(Exception e){
       System.out.println(e.getMessage());
     }
@@ -40,11 +40,11 @@ public class Resource implements Serializable {
   public void readParquetFile(){
     SparkSession spark = SparkSession
         .builder()
-        .master(properties.getProperty("HOST"))
-        .appName("Near places")
+        .master(properties.getProperty(StringConst.HOST))
+        .appName(StringConst.NEAR_PLACES)
         .getOrCreate();
 
-    Dataset<Row> df = spark.read().parquet(properties.getProperty("FILEPATH"));
+    Dataset<Row> df = spark.read().parquet(properties.getProperty(StringConst.FILEPATH));
     this.setDataFrame(df);
     this.setSpark(spark);
   }
